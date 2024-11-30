@@ -12,3 +12,6 @@ dataengineering/
 
 # Mac system files
 .DS_Store
+
+# Environment files
+.env
