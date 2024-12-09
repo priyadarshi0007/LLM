@@ -1,121 +1,118 @@
 import streamlit as st
-import google.generativeai as genai
-import os
-from dotenv import load_dotenv
+from utilities import generate_response_with_gemini
 
-# Load environment variables (make sure you have a .env file with your API key)
-load_dotenv()
-genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
-model = genai.GenerativeModel('gemini-pro')
+# Helper Function: Load External CSS
+def load_css(css_file):
+    """Loads and applies external CSS for styling."""
+    with open(css_file, "r") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-# Set up the Streamlit app
-st.set_page_config(page_title="Gemini Pro Q&A Chatbot", page_icon=":robot:")
-st.title("Gemini Pro Q&A Chatbot")
+# Initialize Session State
+def initialize_session_state():
+    """Initializes session state for chat history."""
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
 
-# Define custom CSS for styling the chat interface
-st.markdown("""
-    <style>
-        .user-bubble {
-            background-color: #e1ffc7;
-            padding: 10px;
-            border-radius: 20px;
-            max-width: 70%;
-            margin-bottom: 10px;
-            margin-left: auto;
-            display: inline-block;
-            font-size: 16px;
-        }
-        .assistant-bubble {
-            background-color: #f1f1f1;
-            padding: 10px;
-            border-radius: 20px;
-            max-width: 70%;
-            margin-bottom: 10px;
-            margin-right: auto;
-            display: inline-block;
-            font-size: 16px;
-        }
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            max-height: 500px;
-            overflow-y: auto;
-            margin-bottom: 70px; /* Make space for the input box */
-        }
-        .chat-input-box {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            background-color: white;
-            padding: 10px;
-            border-radius: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        .chat-input-box input {
-            width: 85%;
-            padding: 10px;
-            border-radius: 10px;
-            border: 1px solid #ccc;
-        }
-        .chat-input-box button {
-            width: 10%;
-            padding: 10px;
-            margin-left: 10px;
-            border: none;
-            border-radius: 10px;
-            background-color: #4CAF50;
-            color: white;
-            cursor: pointer;
-        }
-        .chat-input-box button:hover {
-            background-color: #45a049;
-        }
-    </style>
-""", unsafe_allow_html=True)
+# Display Chat Interface
+def display_chat_interface():
+    """Displays the chat interface with user and assistant messages."""
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    for chat in st.session_state.chat_history:
+        if chat["role"] == "user":
+            st.markdown(f'<div class="user-bubble">{chat["content"]}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="assistant-bubble">{chat["content"]}</div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# Initialize session state for storing chat history
-if 'chat_history' not in st.session_state:
-    st.session_state.chat_history = []
+# Chat Input Box
+def get_user_input():
+    """Creates a chat input box and returns user input."""
+    with st.form(key="chat_form", clear_on_submit=True):
+        user_query = st.text_input("Type your message here:", key="user_input")
+        send_button = st.form_submit_button("Send")
+    return user_query, send_button
 
-# Display previous chat history in chat bubbles
-st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-for chat in st.session_state.chat_history:
-    if chat["role"] == "user":
-        st.markdown(f'<div class="user-bubble">{chat["content"]}</div>', unsafe_allow_html=True)
-    else:
-        st.markdown(f'<div class="assistant-bubble">{chat["content"]}</div>', unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
+# Chatbot Logic
+def handle_user_query(user_query, temperature, top_k, top_p):
+    """Handles user query by generating a response and updating chat history."""
+    try:
+        # Append the user's message to chat history
+        st.session_state.chat_history.append({"role": "user", "content": user_query})
 
-# Create a chat input box and send button inside a fixed container
-with st.form(key='chat_form', clear_on_submit=True):
-    user_query = st.text_input("Type your message here:", key='user_input')
-    send_button = st.form_submit_button("Send")
+        # Display typing indicator
+        typing_placeholder = st.empty()
+        typing_placeholder.markdown('<div class="typing-indicator">Bot is typing...</div>', unsafe_allow_html=True)
 
-# Handle the message submission
-if send_button:
-    if user_query:
-        try:
-            # Append the user's message to the chat history
-            st.session_state.chat_history.append({"role": "user", "content": user_query})
+        # Generate response with the specified parameters
+        response_text = generate_response_with_gemini(user_query, temperature, top_k, top_p)
 
-            # Generate response from the model
-            answer = model.generate_content(user_query)
+        # Remove typing indicator
+        typing_placeholder.empty()
 
-            # Append the assistant's response to the chat history
-            st.session_state.chat_history.append({"role": "assistant", "content": answer.text})
+        # Append the assistant's response to chat history
+        st.session_state.chat_history.append({"role": "assistant", "content": response_text})
 
-            # Update the chat window with the new message and response
-            st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-            st.markdown(f'<div class="user-bubble">{user_query}</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="assistant-bubble">{answer.text}</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
 
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
-    else:
-        st.warning("Please enter a question first.")
+# Main Function
+def main():
+    """Main function to run the Streamlit app."""
+    # Configure the app
+    st.set_page_config(page_title="Gemini Pro Q&A Chatbot", page_icon=":robot:", layout="wide")
+    st.title("Gemini Pro Q&A Chatbot")
+
+    # Load external CSS
+    load_css("styles.css")
+
+    # Initialize session state
+    initialize_session_state()
+
+    # Sidebar sliders for model configuration
+    st.sidebar.header("Model Configuration")
+
+    # Add information bubble for Temperature
+    st.sidebar.markdown("""
+        <span style="font-size: 16px; font-weight: bold;">Temperature</span>
+        <a href="#" title="Controls the randomness of the model's output. Higher values (e.g., 0.8) make output more random, while lower values (e.g., 0.2) make it more deterministic.">
+            ℹ️
+        </a>
+    """, unsafe_allow_html=True)
+    temperature = st.sidebar.slider(" ", 0.0, 1.0, 0.7, 0.1)
+
+    # Add information bubble for Top-K
+    st.sidebar.markdown("""
+        <span style="font-size: 16px; font-weight: bold;">Top-K</span>
+        <a href="#" title="Limits the model to selecting from the top-K most probable tokens. Lower values restrict choices, while higher values allow more diversity.">
+            ℹ️
+        </a>
+    """, unsafe_allow_html=True)
+    top_k = st.sidebar.slider(" ", 1, 100, 40, 1)
+
+    # Add information bubble for Top-P
+    st.sidebar.markdown("""
+        <span style="font-size: 16px; font-weight: bold;">Top-P</span>
+        <a href="#" title="Controls nucleus sampling, selecting tokens with cumulative probability ≤ top-p. Lower values create more deterministic outputs.">
+            ℹ️
+        </a>
+    """, unsafe_allow_html=True)
+    top_p = st.sidebar.slider(" ", 0.0, 1.0, 0.9, 0.1)
+
+    # Display chat interface
+    display_chat_interface()
+
+    # Get user input
+    user_query, send_button = get_user_input()
+
+    # Handle user query
+    if send_button:
+        if user_query.strip():
+            handle_user_query(user_query, temperature, top_k, top_p)
+            # Refresh chat interface after updating
+            display_chat_interface()
+        else:
+            st.warning("Please enter a question first.")
+
+# Run the app
+if __name__ == "__main__":
+    main()
