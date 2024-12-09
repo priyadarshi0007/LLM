@@ -57,5 +57,4 @@ def generate_response_with_gemini(prompt, temperature=None, top_k=None, top_p=No
     
     # Generate the response using the model and configuration
     answer = model.generate_content(prompt)
-    
     return answer.text
