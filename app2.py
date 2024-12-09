@@ -1,5 +1,8 @@
+import sys
+print(sys.path)
 import streamlit as st
 from utilities import generate_response_with_gemini
+
 
 # Helper Function: Load External CSS
 def load_css(css_file):
