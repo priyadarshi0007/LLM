@@ -1,0 +1,9 @@
+<div class="chat-container">
+    {% for chat in chat_history %}
+        {% if chat.role == "user" %}
+            <div class="user-bubble">{{ chat.content }}</div>
+        {% else %}
+            <div class="assistant-bubble">{{ chat.content }}</div>
+        {% endif %}
+    {% endfor %}
+</div>
