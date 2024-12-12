@@ -8,7 +8,8 @@ genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
 
 model = genai.GenerativeModel('gemini-pro')
 
-chat= model.start_chat(history=[]) #set the history parameter as empty list here
+#setting the history parameter as empty list here
+chat= model.start_chat(history=[]) 
 
 answer = chat.send_message("give a short description on the difference of east coast and west coast weather")
 
