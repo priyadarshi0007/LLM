@@ -1,23 +1,21 @@
 import streamlit as st
 from Utilities import generate_response_with_gemini
 
-def handle_user_query(user_query, temperature, top_k, top_p):
-    """Handles user query by generating a response and updating chat history."""
+def handle_user_query(user_query, temperature, top_k, top_p, context=""):
+    """
+    Handles user query and updates chat history efficiently.
+    """
     try:
         # Append the user's message to chat history
         st.session_state.chat_history.append({"role": "user", "content": user_query})
 
-        # Display typing indicator
-        typing_placeholder = st.empty()
-        typing_placeholder.markdown('<div class="typing-indicator">Bot is typing...</div>', unsafe_allow_html=True)
+        # Combine context and query
+        query_with_context = f"Context: {context}\n\nQuestion: {user_query}" if context else user_query
 
-        # Generate response with the specified parameters
-        response_text = generate_response_with_gemini(user_query, temperature, top_k, top_p)
+        # Generate response
+        response_text = generate_response_with_gemini(query_with_context, temperature, top_k, top_p)
 
-        # Remove typing indicator
-        typing_placeholder.empty()
-
-        # Append the assistant's response to chat history
+        # Append assistant's response to chat history
         st.session_state.chat_history.append({"role": "assistant", "content": response_text})
 
     except Exception as e:
