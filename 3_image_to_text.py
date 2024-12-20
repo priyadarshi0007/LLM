@@ -30,6 +30,7 @@ food_img_response = model.generate_content([food_img_promt,food_img])
 
 print(answer.text)
 print("****************************************")
+print("****************************************")
 print(response.text)
 print("******************************************")
 print(food_img_response.text)
